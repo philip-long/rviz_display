@@ -26,21 +26,39 @@ private:
     int counter_;
     bool hold_on_;
 public:
-    RvizDisplay ( ros::NodeHandle nh);
-    void setHoldFlag(bool val);
-    // Direct dynamic model, for a given state and joint torque calculate the acceleration
+    RvizDisplay ( ros::NodeHandle nh );
+    void setHoldFlag ( bool val );
+
+
     double plotPolytope ( Eigen::MatrixXd  vertices,
                           Eigen::Vector3d offset_position,
                           std::vector<double> color_pts= {1.0,0.4,0.4,1.0},
                           std::vector<double> color_line= {1.0,0.4,0.4,1.0},
                           bool plot=false
                         );
-    bool plotPolytope (  std::string polytope_name,
-		      Eigen::MatrixXd  vertices,
-		      Eigen::Vector3d offset_position,
-		      std::vector<double> color_pts= {1.0,0.4,0.4,1.0},
-		      std::vector<double> color_line= {1.0,0.4,0.4,1.0}
-		    );
+    bool plotPolytope ( std::string polytope_name,
+                        Eigen::MatrixXd  vertices,
+                        Eigen::Vector3d offset_position,
+                        std::vector<double> color_pts= {1.0,0.4,0.4,1.0},
+                        std::vector<double> color_line= {1.0,0.4,0.4,1.0}
+                      );
+
+    double plotPolytope ( Eigen::MatrixXd  vertices,
+                          Eigen::Vector3d offset_position,
+                          std::string frame,
+                          std::vector<double> color_pts= {1.0,0.4,0.4,1.0},
+                          std::vector<double> color_line= {1.0,0.4,0.4,1.0},
+                          bool plot=false
+                        );
+    bool plotPolytope ( std::string polytope_name,
+                        Eigen::MatrixXd  vertices,
+			std::string frame,
+                        Eigen::Vector3d offset_position,
+                        std::vector<double> color_pts= {1.0,0.4,0.4,1.0},
+                        std::vector<double> color_line= {1.0,0.4,0.4,1.0}
+                      );
+
+
 
     void publishPoint ( geometry_msgs::Pose pose,
                         std::string mkr_namespace="object",
@@ -48,10 +66,29 @@ public:
                         std::string frame="world",
                         std::vector<double> color= {1.0,0.4,0.4,1.0},
                         std::vector<double> scale= {0.05,0.05,0.05} );
+
     bool displayMarker ( shape_msgs::SolidPrimitive s1,
                          const Eigen::Affine3d & T,
                          unsigned int obj_id,
                          const Eigen::Vector4d & color );
+
+    bool displayMarker ( shape_msgs::Mesh s1,
+                         const Eigen::Affine3d & T,
+                         unsigned int obj_id,
+                         const Eigen::Vector4d & color );
+
+    bool displayMarker ( shape_msgs::SolidPrimitive s1,
+                         const Eigen::Affine3d & T,
+                         std::string frame,
+                         unsigned int obj_id,
+                         const Eigen::Vector4d & color );
+
+    bool displayMarker ( shape_msgs::Mesh s1,
+                         const Eigen::Affine3d & T,
+                         std::string frame,
+                         unsigned int obj_id,
+                         const Eigen::Vector4d & color );
+
 
     void publishPoint ( geometry_msgs::Point pose,
                         std::string mkr_namespace="object",

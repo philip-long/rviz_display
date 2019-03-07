@@ -2,7 +2,7 @@
 #include <rviz_display/rviz_display.h>
 
 
-RvizDisplay::RvizDisplay ( ros::NodeHandle nh) : nh_ ( nh ) {
+RvizDisplay::RvizDisplay ( ros::NodeHandle nh ) : nh_ ( nh ) {
     ROS_INFO ( "RVIZ Initialized" );
 
     mkr_pub=nh_.advertise<visualization_msgs::Marker>
@@ -11,16 +11,34 @@ RvizDisplay::RvizDisplay ( ros::NodeHandle nh) : nh_ ( nh ) {
     counter_=1;
     hold_on_=false;
 }
-void RvizDisplay::setHoldFlag(bool val)
-{
-  hold_on_=val;
+void RvizDisplay::setHoldFlag ( bool val ) {
+    hold_on_=val;
 }
 
 bool RvizDisplay::displayMarker ( shape_msgs::SolidPrimitive s1,
                                   const Eigen::Affine3d & T,
                                   unsigned int obj_id,
                                   const Eigen::Vector4d & color ) {
+    displayMarker ( s1,T,"world",obj_id,color );
+}
+
+
+bool RvizDisplay::displayMarker ( shape_msgs::Mesh s1,
+                                  const Eigen::Affine3d & T,
+                                  unsigned int obj_id,
+                                  const Eigen::Vector4d & color ) {
+
+    displayMarker ( s1,T,"world",obj_id,color );
+}
+
+
+bool RvizDisplay::displayMarker ( shape_msgs::SolidPrimitive s1,
+                                  const Eigen::Affine3d & T,
+                                  std::string frame,
+                                  unsigned int obj_id,
+                                  const Eigen::Vector4d & color ) {
     visualization_msgs::Marker mkr;
+
     geometric_shapes::constructMarkerFromShape ( s1,mkr );
     while ( mkr_pub.getNumSubscribers() <1 ) {
         ROS_INFO_ONCE ( "Waiting until marker is displayed in RVIZ" );
@@ -28,7 +46,7 @@ bool RvizDisplay::displayMarker ( shape_msgs::SolidPrimitive s1,
         ros::Duration ( 0.05 ).sleep();
     }
     mkr.action=visualization_msgs::Marker::ADD;
-    mkr.header.frame_id="world";
+    mkr.header.frame_id=frame;
     mkr.ns="Objects";
     mkr.lifetime=ros::Duration ( 0.0 );
     mkr.id=obj_id;
@@ -47,6 +65,43 @@ bool RvizDisplay::displayMarker ( shape_msgs::SolidPrimitive s1,
     mkr_pub.publish ( mkr );
     ros::spinOnce();
 }
+
+
+bool RvizDisplay::displayMarker ( shape_msgs::Mesh s1,
+                                  const Eigen::Affine3d & T,
+                                  std::string frame,
+                                  unsigned int obj_id,
+                                  const Eigen::Vector4d & color ) {
+    visualization_msgs::Marker mkr;
+    geometric_shapes::constructMarkerFromShape ( s1,mkr );
+
+    while ( mkr_pub.getNumSubscribers() <1 ) {
+        ROS_INFO_ONCE ( "Waiting until marker is displayed in RVIZ" );
+        ros::spinOnce();
+        ros::Duration ( 0.05 ).sleep();
+    }
+    mkr.action=visualization_msgs::Marker::ADD;
+    mkr.header.frame_id=frame;
+    mkr.ns="Objects";
+    mkr.lifetime=ros::Duration ( 0.0 );
+    mkr.id=obj_id;
+    mkr.color.r=color ( 0 );
+    mkr.color.g=color ( 1 );
+    mkr.color.b=color ( 2 );
+    mkr.color.a=color ( 3 );
+    Eigen::Quaterniond q ( T.linear() );
+    mkr.pose.position.x=T ( 0,3 );
+    mkr.pose.position.y=T ( 1,3 );
+    mkr.pose.position.z=T ( 2,3 );
+    mkr.pose.orientation.w=q.w();
+    mkr.pose.orientation.x=q.x();
+    mkr.pose.orientation.y=q.y();
+    mkr.pose.orientation.z=q.z();
+    mkr_pub.publish ( mkr );
+    ros::spinOnce();
+}
+
+
 
 
 void RvizDisplay::publishPlane ( geometry_msgs::Pose pose,
@@ -138,7 +193,7 @@ void RvizDisplay::publishPoint ( geometry_msgs::Point pose,
     mkr.scale.x=scale[0];
     mkr.scale.y=scale[1];
     mkr.scale.z=scale[2];
-    while ( mkr_pub.getNumSubscribers() <1 ) {
+    while ( mkr_pub.getNumSubscribers() <1 && ros::ok() ) {
         ROS_INFO ( "Waiting for subs" );
         ros::spinOnce();
     }
@@ -184,11 +239,29 @@ void RvizDisplay::publishPoint ( Eigen::Vector3d pose,
 }
 
 
+
+
 bool RvizDisplay::plotPolytope ( std::string polytope_name,
-				   Eigen::MatrixXd  vertices,
-                                   Eigen::Vector3d position,
-                                   std::vector<double>  color_pts,
-                                   std::vector<double>  color_line) {
+                                 Eigen::MatrixXd  vertices,
+                                 Eigen::Vector3d position,
+                                 std::vector<double>  color_pts,
+                                 std::vector<double>  color_line ) {
+
+
+    return plotPolytope ( polytope_name,
+                          vertices,
+                          "world",
+                          position
+                          ,color_pts,color_line );
+}
+
+
+bool RvizDisplay::plotPolytope ( std::string polytope_name,
+                                 Eigen::MatrixXd  vertices,
+                                 std::string frame,
+                                 Eigen::Vector3d position,
+                                 std::vector<double>  color_pts,
+                                 std::vector<double>  color_line ) {
 
     pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_hull ( new pcl::PointCloud<pcl::PointXYZ> );
     pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_projected ( new pcl::PointCloud<pcl::PointXYZ> );
@@ -210,7 +283,7 @@ bool RvizDisplay::plotPolytope ( std::string polytope_name,
         chull.reconstruct ( *cloud_hull,polygons );
     } catch ( ... ) {
         ROS_ERROR ( "qhull error" );
-	return false;
+        return false;
     }
 
 
@@ -230,7 +303,7 @@ bool RvizDisplay::plotPolytope ( std::string polytope_name,
         mkr.ns=polytope_name;
         mkr.action=visualization_msgs::Marker::ADD;
         mkr.type=visualization_msgs::Marker::TRIANGLE_LIST;
-        mkr.header.frame_id="world";
+        mkr.header.frame_id=frame;
 
         // polygons is a vector of triangles represented by 3 indices
         // The indices correspond to points in cloud_hull
@@ -276,7 +349,7 @@ bool RvizDisplay::plotPolytope ( std::string polytope_name,
 
 
         mkr.type=visualization_msgs::Marker::SPHERE_LIST;
-        mkr.header.frame_id="world";
+        mkr.header.frame_id=frame;
         mkr.id=1;
 
 
@@ -298,10 +371,12 @@ bool RvizDisplay::plotPolytope ( std::string polytope_name,
         counter_++;
     } else {
         ROS_WARN ( "plotPolytope: Hull empty" );
-	return false;
+        return false;
     }
-  return true;
+    return true;
 }
+
+
 
 
 
@@ -309,7 +384,21 @@ double RvizDisplay::plotPolytope ( Eigen::MatrixXd  vertices,
                                    Eigen::Vector3d position,
                                    std::vector<double>  color_pts,
                                    std::vector<double>  color_line,
-                                   bool plot) {
+                                   bool plot ) {
+    return plotPolytope ( vertices,
+                          position,
+                          "world",
+                          color_pts,
+                          color_line,
+                          plot );
+}
+
+double RvizDisplay::plotPolytope ( Eigen::MatrixXd  vertices,
+                                   Eigen::Vector3d position,
+                                   std::string frame,
+                                   std::vector<double>  color_pts,
+                                   std::vector<double>  color_line,
+                                   bool plot ) {
 
     pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_hull ( new pcl::PointCloud<pcl::PointXYZ> );
     pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_projected ( new pcl::PointCloud<pcl::PointXYZ> );
@@ -353,7 +442,7 @@ double RvizDisplay::plotPolytope ( Eigen::MatrixXd  vertices,
         mkr.ns="polytope_new";
         mkr.action=visualization_msgs::Marker::ADD;
         mkr.type=visualization_msgs::Marker::TRIANGLE_LIST;
-        mkr.header.frame_id="world";
+        mkr.header.frame_id=frame;
 
         // polygons is a vector of triangles represented by 3 indices
         // The indices correspond to points in cloud_hull
@@ -399,7 +488,7 @@ double RvizDisplay::plotPolytope ( Eigen::MatrixXd  vertices,
 
 
         mkr.type=visualization_msgs::Marker::SPHERE_LIST;
-        mkr.header.frame_id="world";
+        mkr.header.frame_id=frame;
         mkr.id=1;
 
 
