@@ -471,10 +471,6 @@ double RvizDisplay::plotPolytope ( Eigen::MatrixXd  vertices,
         mkr.color.b=color_line[2];
         mkr.color.a=color_line[3];//fmax(auto_alpha,0.1);
 
-        //  double auto_alpha=(((double) (counter_))/(double) (nbr_ctrl_steps+3))-1;
-        //  std::cout<<"autp alpha ="<<auto_alpha<<std::endl;
-
-
 
         mkr.scale.x=1.0;
         mkr.scale.y=1.0;
